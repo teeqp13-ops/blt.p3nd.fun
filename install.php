@@ -69,9 +69,22 @@ define('GITHUB_TOKEN', '$github_token');
     }
 }
 
-// فحص المتطلبات
-$zsign_installed = shell_exec('which zsign') ? true : false;
-$config_writable = is_writable($config_file) || !file_exists($config_file);
+// تفعيل تسجيل الأخطاء لمعرفة السبب
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// فحص المتطلبات بطريقة أكثر توافقاً
+function is_command_exists($cmd) {
+    if (function_exists('shell_exec')) {
+        $returnVal = shell_exec("which $cmd");
+        return (empty($returnVal) ? false : true);
+    }
+    return false;
+}
+
+$zsign_installed = is_command_exists('zsign') || file_exists('./zsign');
+$config_writable = is_writable('.') || is_writable($config_file);
 $certs_writable = is_writable($certs_dir);
 
 ?>
