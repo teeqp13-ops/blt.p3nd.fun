@@ -35,7 +35,24 @@ function downloadFile($fileId, $destination) {
     return false;
 }
 
-function generatePlist($ipaUrl, $bundleId, $version, $appName) {
+function generatePlist($ipaUrl, $bundleId, $version, $appName, $iconUrl = "") {
+    $iconSection = "";
+    if (!empty($iconUrl)) {
+        $iconSection = '
+                <dict>
+                    <key>kind</key>
+                    <string>full-size-image</string>
+                    <key>url</key>
+                    <string>' . htmlspecialchars($iconUrl) . '</string>
+                </dict>
+                <dict>
+                    <key>kind</key>
+                    <string>display-image</string>
+                    <key>url</key>
+                    <string>' . htmlspecialchars($iconUrl) . '</string>
+                </dict>';
+    }
+
     $plist = '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -50,7 +67,7 @@ function generatePlist($ipaUrl, $bundleId, $version, $appName) {
                     <string>software-package</string>
                     <key>url</key>
                     <string>' . htmlspecialchars($ipaUrl) . '</string>
-                </dict>
+                </dict>' . $iconSection . '
             </array>
             <key>metadata</key>
             <dict>
@@ -69,7 +86,6 @@ function generatePlist($ipaUrl, $bundleId, $version, $appName) {
 </plist>';
     return $plist;
 }
-?>
 
 function uploadToGitHubRelease($filePath, $releaseTag, $assetName) {
     $url = "https://uploads.github.com/repos/" . GITHUB_REPO_OWNER . "/" . GITHUB_REPO_NAME . "/releases/tags/" . $releaseTag . "/assets?name=" . urlencode($assetName);
@@ -129,3 +145,4 @@ function createGitHubRelease($releaseTag, $releaseName, $body) {
         'response' => $responseData
     ];
 }
+?>

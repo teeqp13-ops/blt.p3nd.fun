@@ -2,6 +2,7 @@
 require_once 'config.php';
 require_once 'utils.php';
 require_once 'signer.php';
+require_once 'extractor.php'; // إضافة ملف extractor.php
 
 $content = file_get_contents("php://input");
 $update = json_decode($content, true);
@@ -20,10 +21,16 @@ $text = $message['text'] ?? '';
 $document = $message['document'] ?? null;
 
 // الترحيب
-if ($text == '/start') {
-    sendMessage($chatId, "أهلاً بك في بوت توقيع تطبيقات IPA. 🚀\n\nقم بإرسال ملف الـ IPA الذي تود توقيعه.");
-    exit;
-}
+    if ($text == '/start') {
+        $keyboard = [
+            'inline_keyboard' => [
+                [['text' => '🌐 زيارة الموقع', 'url' => SERVER_URL]],
+                [['text' => '👨‍💻 المطور', 'url' => 'https://github.com/teeqp13-ops']]
+            ]
+        ];
+        sendMessage($chatId, "أهلاً بك في بوت توقيع تطبيقات IPA. 🚀\n\nقم بإرسال ملف الـ IPA الذي تود توقيعه.", $keyboard);
+        exit;
+    }
 
 // التعامل مع الملفات المرفوعة
 if ($document) {
@@ -40,7 +47,7 @@ if ($document) {
             // ملاحظة: هنا يجب أن يكون لديك ملفات الشهادة والبروفايل مسبقاً في مجلد certs
             // في هذا المثال سنفترض وجود ملفات افتراضية
             $p12 = CERTS_DIR . 'cert.p12';
-            $pass = '123456';
+            $pass = '123456'; // يجب استبدال هذا بكلمة مرور الشهادة الفعلية
             $mp = CERTS_DIR . 'prov.mobileprovision';
             $out = SIGNED_DIR . 'signed_' . time() . '_' . $fileName;
 
@@ -65,8 +72,28 @@ if ($document) {
                     if ($uploadIpaResult['success']) {
                         $ipaUrl = $uploadIpaResult['response']['browser_download_url'];
 
-                        // Generate plist content using the actual IPA URL from GitHub
-                        $plistContent = generatePlist($ipaUrl, 'com.example.app', '1.0', 'Signed App');
+                        // ==================================================================
+                        // START: استخدام extractor.php لاستخراج معلومات التطبيق والأيقونة
+                        // ==================================================================
+                        $ipaInfo = extractIpaInfo($localPath);
+                        $bundleId = $ipaInfo['bundleId'];
+                        $version = $ipaInfo['version'];
+                        $appName = $ipaInfo['appName'];
+                        $iconUrl = '';
+
+                        if (!empty($ipaInfo['iconPath'])) {
+                            $iconName = 'icon_' . time() . '.png';
+                            $uploadIconResult = uploadToGitHubRelease($ipaInfo['iconPath'], $releaseTag, $iconName);
+                            if ($uploadIconResult['success']) {
+                                $iconUrl = $uploadIconResult['response']['browser_download_url'];
+                            }
+                        }
+                        // ==================================================================
+                        // END: استخدام extractor.php لاستخراج معلومات التطبيق والأيقونة
+                        // ==================================================================
+
+                        // توليد plist content باستخدام الـ IPA URL الفعلي من GitHub ورابط الأيقونة (إن وجد)
+                        $plistContent = generatePlist($ipaUrl, $bundleId, $version, $appName, $iconUrl);
                         $plistName = 'install_' . time() . '.plist';
                         $tempPlistPath = SIGNED_DIR . $plistName;
                         file_put_contents($tempPlistPath, $plistContent);
