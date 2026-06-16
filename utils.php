@@ -69,7 +69,6 @@ function generatePlist($ipaUrl, $bundleId, $version, $appName) {
 </plist>';
     return $plist;
 }
-?>
 
 function uploadToGitHubRelease($filePath, $releaseTag, $assetName) {
     $url = "https://uploads.github.com/repos/" . GITHUB_REPO_OWNER . "/" . GITHUB_REPO_NAME . "/releases/tags/" . $releaseTag . "/assets?name=" . urlencode($assetName);
@@ -81,7 +80,8 @@ function uploadToGitHubRelease($filePath, $releaseTag, $assetName) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($filePath));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Authorization: token " . GITHUB_TOKEN,
-        "Content-Type: application/octet-stream"
+        "Content-Type: application/octet-stream",
+        "User-Agent: PHP-Telegram-Bot"
     ]);
     
     $response = curl_exec($ch);
@@ -129,3 +129,4 @@ function createGitHubRelease($releaseTag, $releaseName, $body) {
         'response' => $responseData
     ];
 }
+?>
